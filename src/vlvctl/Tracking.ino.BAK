@@ -1,0 +1,267 @@
+#include <LiquidCrystal.h>
+
+const int MODE_ADMIN = 0;
+const int MODE_TRACKING = 1;
+int _mode = MODE_ADMIN;
+int _modePin = 2;
+LiquidCrystal _lcd(4,6,11,12,13,14);
+int _repPin = 9;
+int _noRepPin = 10;
+int _roundPin = 11;
+
+int _clockInterval = 100;  // frequency in milliseconds at which to render the elapsed time.
+int _syncInterval = 5000; // frequency in miliseconds to upload data to host
+String _athleteId = "";
+String _eventId = "";
+int _currentRound = 1;
+int _startTime = 0;  // timestamp of the start of the event, in milliseconds
+int _reps = 0;
+int _noReps = 0;
+
+void setup() {
+  _lcd.begin(16,0);
+  _lcd.print("Starting...");
+
+  pinMode(_modePin, INPUT);
+  pinMode(_repPin, INPUT);
+  pinMode(_noRepPin, INPUT);
+  pinMode(_roundPin, INPUT);
+  
+  _lcd.clear();
+  _lcd.begin(16,0);
+  _lcd.print("   WELCOME TO");
+  _lcd.begin(16,1);
+  _lcd.print("   REP COUNTER!");  
+}
+
+void loop() {
+
+  // trap a mode switch  
+  if (digitalRead(_modePin) == HIGH)
+  {
+    if (_mode != MODE_ADMIN)
+    {
+      SwitchToAdmin();
+    }
+  }
+  else 
+  {
+    if (_mode != MODE_TRACKING)
+    {
+      SwitchToTracking();
+    }    
+  }
+
+  switch (_mode)
+  {
+    case MODE_ADMIN:
+      RunAdmin();
+      break;
+    case MODE_TRACKING:
+      RunTracking();
+      break;
+  }
+
+}
+
+
+void SwitchToAdmin()
+{
+
+  int sensorValue = analogRead(A0); 
+  String stringOne = "Sensor value: ";
+  String stringThree = stringOne + sensorValue;
+  
+  _mode = MODE_ADMIN;
+  _lcd.clear();
+  _lcd.begin(16,0);
+  _lcd.print("E:" + _eventId + ", A:" + _athleteId);
+  _lcd.begin(16,1);
+  _lcd.print("HIT MENU KEY...");
+}
+
+
+void SwitchToTracking()
+{
+  _mode = MODE_TRACKING;
+  renderScore();
+}
+
+
+// -------------------------------------------------------------
+// ADMIN MODE
+// -------------------------------------------------------------
+
+void RunAdmin()
+{
+  
+}
+
+
+// -------------------------------------------------------------
+// TRACKING MODE
+// -------------------------------------------------------------
+
+void RunTracking()
+{
+  // Track a rep button press
+  if (pressed(_repPin))
+  {
+    if(_currentRound == 0)
+    {
+      incrementRound();
+    }
+    incrementReps();
+  }
+  if (pressed(_noRepPin))
+  {
+    if(_currentRound == 0)
+    {
+      incrementRound();
+    }
+    incrementNoReps();
+  }
+  if (pressed(_roundPin))
+  {
+    incrementRound();   
+  }
+  if (millis() % _clockInterval)
+  {
+    if (_currentRound > 0)
+    {
+      renderElapsed();
+    }
+    else
+    {
+      renderStandBy();
+    }
+  }
+  if (millis() % _syncInterval)
+  {
+    syncToHost();
+  }
+}
+
+
+void incrementReps()
+{
+    _reps++;
+    writeRep();
+    renderReps();
+}
+
+void incrementNoReps()
+{
+    _noReps++;
+    writeNoRep();
+    renderNoReps();
+}
+
+
+void incrementRound()
+{
+    _currentRound++;
+    int roundTime =  millis();
+    
+    // if we haven't yet set the start time, set it to the time of the first round press.
+    if (_currentRound == 1 && _startTime == 0)
+    {
+      _startTime = roundTime;
+    }
+    
+    writeRound(roundTime);
+    renderScore(); 
+}
+
+
+
+void writeRep()
+{
+  
+}
+
+
+void writeNoRep()
+{
+  
+}
+
+
+void writeRound(int roundTime)
+{
+  
+}
+
+
+void renderScore()
+{  
+
+char myString[] = "This is the first line"
+" this is the second line"
+" etcetera";
+
+String stringTwo;
+String stringOne =  String(stringTwo + " with more");   // concatenating two strings
+  
+  _lcd.clear();
+  _lcd.begin(16,0);
+  if (_currentRound > 1)
+  {
+    String readout;
+    readout = readout + _currentRound + " / " + _reps + " X:" + _noReps; 
+    _lcd.print(readout);
+  }
+  else
+  {    
+    _lcd.print("      " + _reps);
+    if (_noReps > 0)
+    {
+      _lcd.print(" X:" + _noReps);
+    }
+  }
+}
+
+void renderReps()
+{
+  _lcd.begin(11,1);
+  _lcd.print(_reps);
+}
+
+void renderNoReps()
+{
+  _lcd.begin(4,1);
+  _lcd.print(_noReps);
+}
+
+
+void renderStandBy()
+{
+  _lcd.begin(16,1);
+  _lcd.print("..STAND BY..");
+}
+
+void renderElapsed()
+{
+  int elapsed = millis() - _startTime;
+  _lcd.begin(16,1);
+  _lcd.print(elapsed);
+}
+
+bool pressed(int pin)
+{
+  return (digitalRead(pin) == HIGH);
+}
+
+
+void syncToHost()
+{
+  // if data data exists that hasnt been uploaded,
+  // then
+  //   check connection
+  //   establish connection
+  //   upload unsynched data
+  //   release connection
+  //   flag data as uploaded
+}
+
+
